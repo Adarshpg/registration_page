@@ -16,7 +16,7 @@ const Header = () => {
                 alt="Medini Logo" 
                 className="logo"
               />
-              <span className="logo-text">Medini</span>
+              <span className="logo-text"></span>
             </Link>
           </div>
           <nav className="nav">
