@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Header from './components/Header';
 import RegistrationForm from './components/RegistrationForm';
 import './App.css';
 
@@ -12,22 +14,23 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Project Registration</h1>
-        <p>Register your project details with us</p>
-      </header>
-      
+      <Header />
       <main className="container">
         {message.text && (
           <div className={`alert alert-${message.type}`}>
             {message.text}
           </div>
         )}
-        <RegistrationForm onMessage={showMessage} />
+        <Routes>
+          <Route 
+            path="/" 
+            element={<RegistrationForm onMessage={showMessage} />} 
+          />
+          {/* Add more routes here as needed */}
+        </Routes>
       </main>
-      
       <footer className="app-footer">
-        <p>© {new Date().getFullYear()} Project Registration. All rights reserved.</p>
+        <p> {new Date().getFullYear()} Project Registration. All rights reserved.</p>
       </footer>
     </div>
   );
