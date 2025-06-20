@@ -2,6 +2,7 @@
   "name": "registration-form-backend",
   "version": "1.0.0",
   "description": "Backend for registration form",
+  "license": "MIT",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,7 +12,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "mongoose": "^7.0.0"
+    "mongoose": "^7.0.0",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
