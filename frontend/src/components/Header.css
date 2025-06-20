@@ -21,16 +21,18 @@
 }
 
 .logo {
-  height: 50px;
+  height: 70px;  /* Increased from 50px */
   width: auto;
-  margin-right: 15px;
+  margin-right: 20px;  /* Increased from 15px */
   border-radius: 4px;
+  object-fit: contain;  /* Ensures the image maintains its aspect ratio */
 }
 
 .logo-text {
-  font-size: 1.8rem;
+  font-size: 2rem;  /* Slightly increased */
   font-weight: bold;
   color: white;
+  margin-left: 5px;  /* Added some space between logo and text */
 }
 
 .nav {
