@@ -88,7 +88,7 @@ const RegistrationForm = ({ onMessage }) => {
         message: message || undefined
       });
       
-      const res = await axios.post(`/api/registrations`, body, config);
+      const res = await axios.post('https://adarshpg-registration-page.onrender.com/api/registrations', body, config);
       
       // Reset form
       setFormData({
