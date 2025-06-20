@@ -17,14 +17,11 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "vercel-build": "react-scripts build"
+    "vercel-build": "npm run build"
   },
-  "homepage": "./",
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "homepage": "/",
+  "engines": {
+    "node": ">=14.0.0"
   },
   "browserslist": {
     "production": [
@@ -36,6 +33,12 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
     ]
   },
   "proxy": "http://localhost:5000"
