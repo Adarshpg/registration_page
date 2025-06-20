@@ -44,7 +44,7 @@ router.get('/', async (req, res) => {
     const registrations = await Registration.find().sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
-      count: registrations.length,
+      count: registrations.length,  
       data: registrations
     });
   } catch (error) {
