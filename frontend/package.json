@@ -19,7 +19,7 @@
     "eject": "react-scripts eject",
     "vercel-build": "npm run build"
   },
-  "homepage": "/",
+  "homepage": "./",
   "engines": {
     "node": ">=14.0.0"
   },
