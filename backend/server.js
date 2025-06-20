@@ -12,8 +12,9 @@ const app = express();
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://registration-page-i8yv.onrender.com',
-  'https://registration-page-i8yv.onrender.com/'
+  'https://adarshpg-registration-page.onrender.com',
+  'https://adarshpg-registration-page.onrender.com/',
+  'https://adarshpg-registration-page.onrender.com'
 ];
 
 const corsOptions = {
@@ -70,7 +71,8 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-const PORT = process.env.PORT || 5000;
+// Use the port from environment variables or default to 10000 for local development
+const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
