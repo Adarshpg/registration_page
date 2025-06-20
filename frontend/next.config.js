@@ -5,7 +5,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://adarshpg-registration-page.onrender.com/api/:path*',
+        destination: 'https://adarshpg-registration-page-ok2y.vercel.app/api/:path*',
       },
     ]
   },

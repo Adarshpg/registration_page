@@ -12,9 +12,8 @@ const app = express();
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://adarshpg-registration-page.onrender.com',
-  'https://adarshpg-registration-page.onrender.com/',
-  'https://adarshpg-registration-page.onrender.com'
+  'https://adarshpg-registration-page-ok2y.vercel.app',
+  'https://adarshpg-registration-page-ok2y.vercel.app/'
 ];
 
 const corsOptions = {
