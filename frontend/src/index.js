@@ -5,7 +5,7 @@ import axios from 'axios';
 import './index.css';
 
 // Set base URL for API requests
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:10000';
+axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
 const container = document.getElementById('root');
 const root = createRoot(container);
