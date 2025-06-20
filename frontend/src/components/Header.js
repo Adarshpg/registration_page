@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-const mediniLogo = '/images/medini.jpg';
 import './Header.css';
+
+const mediniLogo = '/images/medini.jpg';
 
 const Header = () => {
   return (
