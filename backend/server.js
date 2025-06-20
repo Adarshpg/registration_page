@@ -30,12 +30,29 @@ app.use('/api/registrations', require('./routes/registrationRoutes'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-  // Set static folder
-  app.use(express.static('client/build'));
+  // Set static folder - only if it exists
+  const clientBuildPath = path.join(__dirname, 'client', 'build');
+  
+  // Check if the build directory exists
+  if (require('fs').existsSync(clientBuildPath)) {
+    console.log('Serving static files from:', clientBuildPath);
+    app.use(express.static(clientBuildPath));
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
-  });
+    // Handle SPA routing - serve index.html for all routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientBuildPath, 'index.html'));
+    });
+  } else {
+    console.log('No client build found. Running in API-only mode.');
+    // Provide a simple response for the root route
+    app.get('/', (req, res) => {
+      res.json({
+        message: 'Backend API is running',
+        status: 'success',
+        timestamp: new Date().toISOString()
+      });
+    });
+  }
 }
 
 const PORT = process.env.PORT || 5000;
