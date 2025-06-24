@@ -151,7 +151,7 @@ const RegistrationForm = ({ onMessage }) => {
         message: message || undefined
       });
       
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/registrations`, body, config);
+      await axios.post(process.env.REACT_APP_API_URL, body, config);
       
       // Reset form
       setFormData({
