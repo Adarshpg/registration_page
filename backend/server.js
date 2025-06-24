@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 require('dotenv').config();
 
@@ -8,42 +10,101 @@ require('dotenv').config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
 
-// CORS Configuration
+// CORS and WebSocket Configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://adarshpg-registration-page-ok2y.vercel.app',
-  'https://adarshpg-registration-page-ok2y.vercel.app/'
+  'http://localhost:5000',
+  'https://adarshpg-registration-page-ok2y.vercel.app'
 ];
 
-const corsOptions = {
+// Apply CORS to Express app
+app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Allow all vercel.app subdomains
-    if (origin.endsWith('.vercel.app')) {
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.includes(origin) || 
+        allowedOrigins.some(allowedOrigin => origin.startsWith(allowedOrigin))) {
       return callback(null, true);
     }
     
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Content-Length', 'X-Requested-With'],
   credentials: true,
-  optionsSuccessStatus: 200
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Initialize Socket.IO with CORS
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
+  path: '/socket.io/',
+  serveClient: false,
+  transports: ['websocket', 'polling'],
+  pingTimeout: 30000,
+  pingInterval: 25000
+});
+
+// Make io accessible to our router
+app.set('io', io);
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('✅ New client connected:', socket.id);
+
+  // Handle admin room joining
+  socket.on('joinAdminRoom', () => {
+    socket.join('admin');
+    console.log(`Client ${socket.id} joined admin room`);
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('❌ Client disconnected:', socket.id);
+  });
+
+  // Handle errors
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+
+  // Handle new registration event
+  socket.on('newRegistration', async (registration) => {
+    try {
+      // Fetch all registrations to ensure we have the latest data
+      const Registration = require('./models/Registration');
+      const registrations = await Registration.find().sort({ createdAt: -1 });
+      
+      // Emit the updated list to all connected clients
+      io.emit('newRegistration', registrations);
+      console.log('Emitted new registration to all clients');
+    } catch (error) {
+      console.error('Error handling new registration:', error);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
+// Make io accessible to our router
+app.set('io', io);
 
 // Middleware
 app.use(express.json());
-app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors(corsOptions));
+app.options('*', cors());
 
 // Define Routes
 app.use('/api/registrations', require('./routes/registrationRoutes'));
@@ -75,11 +136,13 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-// Use the port from environment variables or default to 10000 for local development
-const PORT = process.env.PORT || 10000;
+// Use the port from environment variables or default to 5000 for local development
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+// Use server.listen() instead of app.listen() for WebSocket support
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket server is running`);
 });
 
 // Handle unhandled promise rejections

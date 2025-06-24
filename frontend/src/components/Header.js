@@ -1,10 +1,18 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Header.css';
 
 const mediniLogo = '/images/medini.jpg';
 
-const Header = () => {
+const Header = ({ isAuthenticated, onLogout }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/');
+  };
+
   return (
     <header className="header">
       <div className="container">
@@ -20,8 +28,33 @@ const Header = () => {
             </Link>
           </div>
           <nav className="nav">
-            <Link to="/" className="nav-link">Home</Link>
-            <Link to="/registrations" className="nav-link">Registrations</Link>
+            <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
+              Home
+            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link 
+                  to="/registrations" 
+                  className={`nav-link ${location.pathname === '/registrations' ? 'active' : ''}`}
+                >
+                  View Registrations
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="nav-link logout-btn"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link 
+                to="/login" 
+                className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}
+                state={{ from: location.pathname }}
+              >
+                Admin Login
+              </Link>
+            )}
           </nav>
         </div>
       </div>

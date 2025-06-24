@@ -36,6 +36,16 @@ const registrationSchema = new mongoose.Schema({
     min: [1900, 'Year must be after 1900'],
     max: [new Date().getFullYear() + 5, 'Year cannot be in the future']
   },
+  service: {
+    type: String,
+    required: [true, 'Please select a service'],
+    trim: true
+  },
+  course: {
+    type: String,
+    required: [true, 'Please select a course'],
+    trim: true
+  },
   message: {
     type: String,
     trim: true,
@@ -47,4 +57,13 @@ const registrationSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Registration', registrationSchema);
+// Add indexes for better query performance
+registrationSchema.index({ email: 1 }, { unique: true });
+registrationSchema.index({ service: 1 });
+registrationSchema.index({ course: 1 });
+registrationSchema.index({ createdAt: -1 });
+
+// Create the model with explicit collection name to match your MongoDB Atlas collection
+const Registration = mongoose.model('Registration', registrationSchema, 'registrations');
+
+module.exports = Registration;
