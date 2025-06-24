@@ -14,8 +14,10 @@ const server = http.createServer(app);
 
 // CORS and WebSocket Configuration
 const allowedOrigins = process.env.CORS_ORIGINS ? 
-  process.env.CORS_ORIGINS.split(',') : 
-  ['http://localhost:3000', 'http://localhost:5000','https://registration-page-7c8o.vercel.app'];
+  process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : 
+  ['http://localhost:3000', 'http://localhost:5000', 'https://registration-page-7c8o.vercel.app'];
+
+console.log('Allowed CORS origins:', allowedOrigins);
 
 // Apply CORS to Express app
 app.use(cors({

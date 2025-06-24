@@ -87,107 +87,150 @@ const AdminDashboard = () => {
         setError('');
         
         try {
-            // Build query parameters
-            const params = new URLSearchParams();
-            params.append('page', page);
-            if (search) params.append('search', search);
-            if (service && service !== 'All') params.append('service', service);
-            
-            const response = await axios.get(`${API_URL}?${params.toString()}`);
-            console.log('API Response:', response.data);
-            
-            if (response.data?.success) {
-                let registrationsData = response.data.data || [];
-                const { total, totalPages, hasNextPage, hasPreviousPage } = response.data;
-                
-                if (!Array.isArray(registrationsData)) {
-                    console.error('Invalid data format received:', registrationsData);
-                    registrationsData = [];
-                }
-                
-                // Process registrations with better error handling
-                const processedRegistrations = registrationsData.map(reg => {
-                    try {
-                        return {
-                            _id: reg._id || `temp-${Math.random().toString(36).substr(2, 9)}`,
-                            fullName: reg.fullName || 'Not provided',
-                            email: reg.email || 'Not provided',
-                            phone: reg.phone || 'Not provided',
-                            service: reg.service || 'Not specified',
-                            course: reg.course || 'Not specified',
-                            qualification: reg.qualification || 'Not specified',
-                            passingYear: reg.passingYear || 'N/A',
-                            message: reg.message || '',
-                            createdAt: reg.createdAt || new Date().toISOString(),
-                            updatedAt: reg.updatedAt || new Date().toISOString()
-                        };
-                    } catch (err) {
-                        console.error('Error processing registration:', reg, err);
-                        return null;
-                    }
-                }).filter(Boolean); // Remove any null entries from failed processing
-                
-                // Extract unique services and courses
-                const servicesSet = new Set();
-                const coursesMap = {};
-                
-                processedRegistrations.forEach(reg => {
-                    if (reg && reg.service) {
-                        servicesSet.add(reg.service);
-                        if (!coursesMap[reg.service]) {
-                            coursesMap[reg.service] = new Set();
-                        }
-                        if (reg.course) {
-                            coursesMap[reg.service].add(reg.course);
-                        }
-                    }
-                });
-                
-                // Update state
-                setRegistrations(processedRegistrations);
-                
-                // Add predefined services if none found in the data
-                const allServices = new Set([...SERVICES.map(s => s.name), ...servicesSet]);
-                
-                setServices(Array.from(allServices).map(service => ({
-                    id: service.toLowerCase().replace(/\s+/g, '-'),
-                    name: service
-                })));
-                
-                // Initialize courses for predefined services
-                SERVICES.forEach(service => {
-                    if (!coursesMap[service.name]) {
-                        coursesMap[service.name] = new Set(service.courses);
-                    } else {
-                        service.courses.forEach(course => coursesMap[service.name].add(course));
-                    }
-                });
-                
-                setServiceCourses(
-                    Object.fromEntries(
-                        Object.entries(coursesMap).map(([service, courses]) => [
-                            service,
-                            Array.from(courses).sort()
-                        ])
-                    )
-                );
-                
-                setPagination({
-                    currentPage: page,
-                    totalPages,
-                    hasNextPage,
-                    hasPreviousPage,
-                    total
-                });
-            } else {
-                console.error('API Error:', response.data);
-                throw new Error(response.data?.message || 'Failed to fetch registrations');
+            // Ensure we have a valid API URL
+            if (!API_URL) {
+                throw new Error('API URL is not configured');
             }
+            
+            console.log('Making API request to:', API_URL, { page, search, service });
+            
+            const response = await axios.get(API_URL, {
+                params: {
+                    page,
+                    ...(search && { search }),
+                    ...(service && service !== 'All' && { service })
+                },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                withCredentials: true,
+                timeout: 10000 // 10 second timeout
+            });
+            
+            console.log('API Response Status:', response.status);
+            console.log('API Response Data:', response.data);
+            
+            if (!response.data) {
+                throw new Error('No data received from server');
+            }
+            
+            // Handle both response formats: direct array or success/data wrapper
+            const responseData = response.data;
+            let registrationsData = [];
+            let paginationData = {};
+            
+            if (Array.isArray(responseData)) {
+                // Direct array response
+                registrationsData = responseData;
+                paginationData = {
+                    total: registrationsData.length,
+                    totalPages: 1,
+                    currentPage: 1,
+                    hasNextPage: false,
+                    hasPreviousPage: false
+                };
+            } else if (responseData && Array.isArray(responseData.data)) {
+                // Wrapped response with success/data
+                registrationsData = responseData.data || [];
+                paginationData = {
+                    total: responseData.total || registrationsData.length,
+                    totalPages: responseData.totalPages || 1,
+                    currentPage: responseData.currentPage || 1,
+                    hasNextPage: responseData.hasNextPage || false,
+                    hasPreviousPage: responseData.hasPreviousPage || false
+                };
+            } else {
+                throw new Error('Invalid response format from server');
+            }
+            
+            if (!Array.isArray(registrationsData)) {
+                console.error('Invalid data format received:', registrationsData);
+                registrationsData = [];
+            }
+            
+            // Process registrations with better error handling
+            const processedRegistrations = registrationsData.map(reg => {
+                try {
+                    return {
+                        _id: reg._id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+                        fullName: reg.fullName || 'Not provided',
+                        email: reg.email || 'Not provided',
+                        phone: reg.phone || 'Not provided',
+                        service: reg.service || 'Not specified',
+                        course: reg.course || 'Not specified',
+                        qualification: reg.qualification || 'Not specified',
+                        passingYear: reg.passingYear || 'N/A',
+                        message: reg.message || '',
+                        createdAt: reg.createdAt || new Date().toISOString(),
+                        updatedAt: reg.updatedAt || new Date().toISOString()
+                    };
+                } catch (err) {
+                    console.error('Error processing registration:', reg, err);
+                    return null;
+                }
+            }).filter(Boolean); // Remove any null entries from failed processing
+            
+            // Extract unique services and courses
+            const servicesSet = new Set();
+            const coursesMap = {};
+            
+            processedRegistrations.forEach(reg => {
+                if (reg && reg.service) {
+                    servicesSet.add(reg.service);
+                    if (!coursesMap[reg.service]) {
+                        coursesMap[reg.service] = new Set();
+                    }
+                    if (reg.course) {
+                        coursesMap[reg.service].add(reg.course);
+                    }
+                }
+            });
+            
+            // Update state
+            setRegistrations(processedRegistrations);
+            
+            // Add predefined services if none found in the data
+            const allServices = new Set([...SERVICES.map(s => s.name), ...servicesSet]);
+            
+            setServices(Array.from(allServices).map(service => ({
+                id: service.toLowerCase().replace(/\s+/g, '-'),
+                name: service
+            })));
+            
+            // Initialize courses for predefined services
+            SERVICES.forEach(service => {
+                if (!coursesMap[service.name]) {
+                    coursesMap[service.name] = new Set(service.courses);
+                } else {
+                    service.courses.forEach(course => coursesMap[service.name].add(course));
+                }
+            });
+            
+            setServiceCourses(
+                Object.fromEntries(
+                    Object.entries(coursesMap).map(([service, courses]) => [
+                        service,
+                        Array.from(courses).sort()
+                    ])
+                )
+            );
+            
+            setPagination({
+                currentPage: paginationData.currentPage,
+                totalPages: paginationData.totalPages,
+                hasNextPage: paginationData.hasNextPage,
+                hasPreviousPage: paginationData.hasPreviousPage,
+                total: paginationData.total
+            });
+            
+            return responseData;
         } catch (error) {
-            console.error('Error fetching registrations:', error);
-            setError(error.message || 'Failed to fetch registrations. Please try again later.');
+            console.error('Error in fetchRegistrations:', error);
+            setError(error.message || 'Failed to fetch registrations. Please try again.');
+            return { data: [], total: 0, totalPages: 0 };
         } finally {
-            setIsLoading(false);
+            loadingState(false);
             setIsRefreshing(false);
         }
     }, [isRefreshing]);
@@ -289,20 +332,39 @@ const AdminDashboard = () => {
     
     // Initial data fetch
     useEffect(() => {
-        fetchRegistrations();
+        const loadData = async () => {
+            try {
+                console.log('Fetching initial data...');
+                await fetchRegistrations(1, '', 'All');
+            } catch (error) {
+                console.error('Error in initial data fetch:', error);
+                setError('Failed to load registration data. Please refresh the page to try again.');
+            }
+        };
+
+        loadData();
     }, [fetchRegistrations]);
     
     // Handle search input change
-    const handleSearch = useCallback((e) => {
-        const value = e.target.value;
-        setSearchTerm(value);
-        fetchRegistrations(1, value, selectedService);
-    }, [fetchRegistrations, selectedService]);
+    const handleSearch = useCallback(
+        (e) => {
+            const searchText = e.target.value;
+            setSearchTerm(searchText);
+            fetchRegistrations(1, searchText, selectedService).catch(error => {
+                console.error('Error during search:', error);
+                setError('Failed to perform search. Please try again.');
+            });
+        },
+        [fetchRegistrations, selectedService]
+    );
 
     // Handle refresh button click
     const handleRefresh = useCallback(() => {
         setIsRefreshing(true);
-        fetchRegistrations(pagination.currentPage, searchTerm, selectedService);
+        fetchRegistrations(pagination.currentPage, searchTerm, selectedService).catch(error => {
+            console.error('Error refreshing data:', error);
+            setError('Failed to refresh data. Please try again.');
+        });
     }, [fetchRegistrations, pagination.currentPage, searchTerm, selectedService]);
 
     // Handle view student details
@@ -321,19 +383,40 @@ const AdminDashboard = () => {
         alert(details);
     }, [formatDate]);
 
-    // Handle delete student
-    const handleDeleteStudent = useCallback(async (id) => {
-        if (window.confirm('Are you sure you want to delete this registration?')) {
+    // Handle delete registration
+    const handleDelete = useCallback(async (id) => {
+        if (window.confirm('Are you sure you want to delete this registration? This action cannot be undone.')) {
             try {
-                await axios.delete(`${API_URL}/${id}`);
-                setRegistrations(prev => prev.filter(reg => reg._id !== id));
-            } catch (err) {
-                console.error('Error deleting registration:', err);
-                alert('Failed to delete registration. Please try again.');
+                setIsLoading(true);
+                await axios.delete(`${API_URL}/${id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    withCredentials: true,
+                    timeout: 10000 // 10 second timeout
+                });
+                
+                // Show success message
+                alert('Registration deleted successfully!');
+                
+                // Refresh the data after successful deletion
+                await fetchRegistrations(pagination.currentPage, searchTerm, selectedService);
+            } catch (error) {
+                console.error('Error deleting registration:', error);
+                const errorMessage = error.response?.data?.message || 
+                                   'Failed to delete registration. Please try again.';
+                setError(errorMessage);
+                
+                // If the error is due to the registration not being found, refresh the list
+                if (error.response?.status === 404) {
+                    await fetchRegistrations(pagination.currentPage, searchTerm, selectedService);
+                }
+            } finally {
+                setIsLoading(false);
             }
         }
-    }, []);
-    
+    }, [fetchRegistrations, pagination.currentPage, searchTerm, selectedService]);
 
     // Filter registrations based on search, service, and course
     const filteredRegistrations = useMemo(() => {
@@ -512,8 +595,8 @@ const AdminDashboard = () => {
                                             <th className="service-col">Service</th>
                                             <th className="course-col">Course</th>
                                             <th className="qualification-col">Qualification</th>
-                                            <th className="year-col">Year</th>
-                                            <th className="date-col">Registered</th>
+                                            <th className="year-col">Passing Year</th>
+                                            <th className="date-col">Date Registered</th>
                                             <th className="actions-col">Actions</th>
                                         </tr>
                                     </thead>
@@ -542,9 +625,7 @@ const AdminDashboard = () => {
                                                     </td>
                                                     <td className="service-col">
                                                         <div className="cell-content" title={registration.service}>
-                                                            <span className="badge">
-                                                                {registration.service}
-                                                            </span>
+                                                            {registration.service}
                                                         </div>
                                                     </td>
                                                     <td className="course-col">
@@ -564,12 +645,12 @@ const AdminDashboard = () => {
                                                     </td>
                                                     <td className="date-col">
                                                         <div className="cell-content" title={formatDate(registration.createdAt)}>
-                                                            <span className="date">
+                                                            <div className="date">
                                                                 {new Date(registration.createdAt).toLocaleDateString()}
-                                                            </span>
-                                                            <span className="time">
+                                                            </div>
+                                                            <div className="time">
                                                                 {new Date(registration.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                                            </span>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="actions-col">
@@ -583,10 +664,11 @@ const AdminDashboard = () => {
                                                             </button>
                                                             <button 
                                                                 className="btn-icon delete"
-                                                                onClick={() => handleDeleteStudent(registration._id)}
+                                                                onClick={() => handleDelete(registration._id)}
                                                                 title="Delete Registration"
+                                                                disabled={isLoading}
                                                             >
-                                                                <FaTrash />
+                                                                {isLoading ? 'Deleting...' : <FaTrash />}
                                                             </button>
                                                         </div>
                                                     </td>
