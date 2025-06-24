@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Header.css';
 
-const mediniLogo = '/images/medini.jpg';
+const mediniLogo = '/images/123.png';
 
 const Header = ({ isAuthenticated, onLogout }) => {
   const location = useLocation();
