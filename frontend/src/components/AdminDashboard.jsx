@@ -311,12 +311,6 @@ const AdminDashboard = () => {
         }
     }, []);
     
-    // Get available courses for selected service
-    const getAvailableCourses = useCallback((serviceName) => {
-        if (!serviceName || serviceName === 'All') return [];
-        const service = SERVICES.find(s => s.name === serviceName);
-        return service ? service.courses : [];
-    }, []);
 
     // Filter registrations based on search, service, and course
     const filteredRegistrations = useMemo(() => {

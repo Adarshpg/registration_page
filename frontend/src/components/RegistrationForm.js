@@ -54,7 +54,6 @@ const RegistrationForm = ({ onMessage }) => {
   });
   
   const [availableCourses, setAvailableCourses] = useState([]);
-  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -289,11 +288,7 @@ const RegistrationForm = ({ onMessage }) => {
               </option>
             ))}
           </select>
-          {isLoadingCourses ? (
-            <div className="loading-text">Loading courses...</div>
-          ) : errors.course ? (
-            <span className="error-message">{errors.course}</span>
-          ) : null}
+          {errors.course && <span className="error-message">{errors.course}</span>}
         </div>
 
         <div className="form-group">
