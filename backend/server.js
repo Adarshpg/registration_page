@@ -13,55 +13,201 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS and WebSocket Configuration
-const allowedOrigins = process.env.CORS_ORIGINS ? 
-  process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : 
-  ['http://localhost:3000', 'http://localhost:5000', 'https://registration-page-7c8o.vercel.app'];
+// Parse CORS_ORIGINS from environment variable with better error handling
+let allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'https://registration-page-7c8o.vercel.app',
+  'https://adarshpg-registration-page.onrender.com',
+];
 
+// Add any additional origins from environment variable
+if (process.env.CORS_ORIGINS) {
+  try {
+    const envOrigins = process.env.CORS_ORIGINS
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(origin => origin);
+    
+    // Add any new origins from env that aren't already in the list
+    envOrigins.forEach(origin => {
+      if (!allowedOrigins.includes(origin)) {
+        allowedOrigins.push(origin);
+      }
+    });
+  } catch (error) {
+    console.error('Error parsing CORS_ORIGINS:', error);
+  }
+}
+
+// Log allowed origins for debugging
 console.log('Allowed CORS origins:', allowedOrigins);
 
-// Apply CORS to Express app
+// Apply CORS to Express app with more permissive settings
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if the origin is in the allowed list
-    if (allowedOrigins.some(allowedOrigin => 
-      origin === allowedOrigin || 
-      origin.startsWith(allowedOrigin.replace(/\*$/, ''))
-    )) {
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server requests)
+    if (!origin) {
+      console.log('No origin - allowing request');
       return callback(null, true);
     }
     
-    console.log('CORS blocked for origin:', origin);
-    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-    return callback(new Error(msg), false);
+    // Normalize the origin by removing trailing slashes
+    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    
+    // Check if the origin is in the allowed list
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      // Handle wildcard subdomains (e.g., 'https://*.example.com')
+      if (allowedOrigin.includes('*')) {
+        const regexPattern = '^' + allowedOrigin.replace(/\*/g, '.*').replace(/\./g, '\\.');
+        return new RegExp(regexPattern).test(normalizedOrigin);
+      }
+      
+      // Exact match or starts with match (for paths)
+      return (
+        normalizedOrigin === allowedOrigin ||
+        normalizedOrigin.startsWith(allowedOrigin + '/') ||
+        normalizedOrigin.startsWith(allowedOrigin.replace(/https?:\/\//, 'http://')) ||
+        normalizedOrigin.startsWith(allowedOrigin.replace(/https?:\/\//, 'https://'))
+      );
+    });
+    
+    if (isAllowed) {
+      console.log(`CORS allowed for origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    console.warn('CORS blocked for origin:', origin);
+    console.warn('Allowed origins:', allowedOrigins);
+    
+    const error = new Error(`The CORS policy for this site does not allow access from the specified Origin: ${origin}`);
+    error.status = 403;
+    return callback(error, false);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'X-Auth-Token',
+    'X-Requested-With',
+    'X-CSRF-Token',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Credentials'
+  ],
+  exposedHeaders: [
+    'Content-Length',
+    'Date',
+    'X-Request-Id',
+    'X-Powered-By',
+    'X-Content-Type-Options'
+  ],
+  maxAge: 600, // How long the results of a preflight request can be cached (in seconds)
+  preflightContinue: false,
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }));
 
 // Initialize Socket.IO with CORS
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace(/\*$/, '')))) {
-        callback(null, true);
-      } else {
-        console.log('WebSocket CORS blocked for origin:', origin);
-        callback(new Error('Not allowed by CORS'));
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server requests)
+      if (!origin) {
+        console.log('WebSocket: No origin - allowing connection');
+        return callback(null, true);
       }
+      
+      // Normalize the origin by removing trailing slashes
+      const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+      
+      // Check if the origin is in the allowed list
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        // Handle wildcard subdomains (e.g., 'https://*.example.com')
+        if (allowedOrigin.includes('*')) {
+          const regexPattern = '^' + allowedOrigin.replace(/\*/g, '.*').replace(/\./g, '\\.');
+          return new RegExp(regexPattern).test(normalizedOrigin);
+        }
+        
+        // Exact match or starts with match (for paths)
+        return (
+          normalizedOrigin === allowedOrigin ||
+          normalizedOrigin.startsWith(allowedOrigin + '/') ||
+          normalizedOrigin.startsWith(allowedOrigin.replace(/https?:\/\//, 'http://')) ||
+          normalizedOrigin.startsWith(allowedOrigin.replace(/https?:\/\//, 'https://'))
+        );
+      });
+      
+      if (isAllowed) {
+        console.log(`WebSocket: CORS allowed for origin: ${origin}`);
+        return callback(null, true);
+      }
+      
+      console.warn('WebSocket: CORS blocked for origin:', origin);
+      console.warn('WebSocket: Allowed origins:', allowedOrigins);
+      
+      const error = new Error('Not allowed by CORS');
+      error.status = 403;
+      return callback(error, false);
     },
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'X-Auth-Token',
+      'X-Requested-With',
+      'X-CSRF-Token',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials'
+    ]
   },
   path: '/socket.io/',
   serveClient: false,
   transports: ['websocket', 'polling'],
   pingTimeout: 30000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  // Enable HTTP long-polling fallback
+  allowEIO3: true,
+  // Increase maxHttpBufferSize if you expect large messages
+  maxHttpBufferSize: 1e8, // 100MB
+  // Enable HTTP compression
+  httpCompression: true,
+  // Enable WebSocket compression
+  perMessageDeflate: {
+    threshold: 1024, // Size threshold in bytes for message compression
+    zlibDeflateOptions: {
+      level: 3 // Compression level (0-9), 3 is a good balance between speed and compression
+    },
+    zlibInflateOptions: {
+      chunkSize: 10 * 1024 // 10KB chunks
+    },
+    // Other clients must support compression
+    clientNoContextTakeover: true,
+    serverNoContextTakeover: true,
+    // Other options
+    concurrencyLimit: 10,
+    // Whether to use the server's max window bits
+    serverMaxWindowBits: 10
+  },
+  // Add additional headers and connection settings
+  allowRequest: (req, callback) => {
+    // Add any additional request validation here
+    callback(null, true); // Authorize all requests by default
+  },
+  // Handle connection errors
+  connectTimeout: 10000, // 10 seconds
+  // Timeout for upgrade requests
+  upgradeTimeout: 10000, // 10 seconds
+  // Allow protocol upgrades (HTTP to WebSocket)
+  allowUpgrades: true
 });
 
 // Make io accessible to our router
