@@ -7,7 +7,7 @@ const SERVICES = [
   { 
     id: 'edutech', 
     name: 'EduTech', 
-    courses: ['Online Tutoring', 'E-Learning Platform', 'Educational Apps'] 
+    courses: ['BIM Construction', 'BIM Architecture', 'BIM Infrastructure','AEC','Product Design and Manufacturing','IT'] 
   },
   { 
     id: 'digidhvani', 
@@ -17,7 +17,7 @@ const SERVICES = [
   { 
     id: 'builddspace', 
     name: 'BuilddSpace', 
-    courses: ['Co-Working Space', 'Startup Incubation', 'Mentorship Programs'] 
+    courses: ['Structural Engineering', 'Civil Engineering', 'Mentorship Programs'] 
   },
   { 
     id: 'eduphygital', 
@@ -27,12 +27,12 @@ const SERVICES = [
   { 
     id: 'mechsetu', 
     name: 'MechSetu', 
-    courses: ['Mechanical Engineering', 'CAD/CAM Training', 'Industrial Automation'] 
+    courses: ['Industrial 3D Printing', 'Multimaterial Printing', 'Micro-precision Printing','Rapid Prototyping',] 
   },
   { 
     id: 'nalaneel', 
     name: 'Nalaneel', 
-    courses: ['Research & Development', 'Innovation Lab', 'Tech Incubation'] 
+    courses: ['AI and ML', 'Data Science', 'java Fullstack','python Fullstack',] 
   },
   { 
     id: 'bim-construct', 
