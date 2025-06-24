@@ -49,6 +49,10 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Trim and validate service and course
+    const trimmedService = service ? service.trim() : '';
+    const trimmedCourse = course ? course.trim() : '';
+
     // Create and save the new registration
     const registration = new Registration({
       fullName: fullName.trim(),
@@ -56,8 +60,8 @@ router.post('/', async (req, res) => {
       phone: phone.trim(),
       qualification: qualification ? qualification.trim() : 'Not specified',
       passingYear: passingYear || new Date().getFullYear(),
-      service: service.trim(),
-      course: course.trim(),
+      service: trimmedService,
+      course: trimmedCourse,
       message: message ? message.trim() : '',
       createdAt: new Date()
     });
@@ -68,8 +72,15 @@ router.post('/', async (req, res) => {
     await session.commitTransaction();
     session.endSession();
     
-    // Get the full saved document
+    // Get the full saved document with all fields
     const newRegistration = await Registration.findById(savedRegistration._id).lean();
+    
+    // Prepare response data with all fields
+    const responseData = {
+      ...newRegistration,
+      service: newRegistration.service || '',
+      course: newRegistration.course || ''
+    };
     
     // Emit new registration event to all connected clients
     try {
@@ -77,7 +88,7 @@ router.post('/', async (req, res) => {
       if (io) {
         // Add timestamp and source to the event
         const registrationEvent = {
-          ...newRegistration,
+          ...responseData,
           eventSource: 'registration-api',
           timestamp: new Date().toISOString()
         };
@@ -85,14 +96,12 @@ router.post('/', async (req, res) => {
         console.log('📢 Emitting newRegistration event to admin room:', {
           registrationId: registrationEvent._id,
           email: registrationEvent.email,
+          service: registrationEvent.service,
+          course: registrationEvent.course,
           timestamp: registrationEvent.timestamp
         });
         
-        // Emit only to the admin room
         io.to('admin').emit('newRegistration', registrationEvent);
-        
-        // Also log to all connected clients for debugging
-        console.log(`📡 Emitted to ${io.sockets.adapter.rooms.get('admin')?.size || 0} admin clients`);
       } else {
         console.warn('WebSocket server not available for emitting new registration event');
       }

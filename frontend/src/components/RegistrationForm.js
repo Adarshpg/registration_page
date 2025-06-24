@@ -1,6 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './RegistrationForm.css';
+
+// Services and their respective courses
+const SERVICES = [
+  { 
+    id: 'edutech', 
+    name: 'EduTech', 
+    courses: ['Online Tutoring', 'E-Learning Platform', 'Educational Apps'] 
+  },
+  { 
+    id: 'digidhvani', 
+    name: 'DigiDhwani', 
+    courses: ['Digital Marketing', 'Content Creation', 'Social Media Management'] 
+  },
+  { 
+    id: 'builddspace', 
+    name: 'BuilddSpace', 
+    courses: ['Co-Working Space', 'Startup Incubation', 'Mentorship Programs'] 
+  },
+  { 
+    id: 'eduphygital', 
+    name: 'EduPhyGital', 
+    courses: ['Blended Learning', 'Hybrid Education', 'Digital Classrooms'] 
+  },
+  { 
+    id: 'mechsetu', 
+    name: 'MechSetu', 
+    courses: ['Mechanical Engineering', 'CAD/CAM Training', 'Industrial Automation'] 
+  },
+  { 
+    id: 'nalaneel', 
+    name: 'Nalaneel', 
+    courses: ['Research & Development', 'Innovation Lab', 'Tech Incubation'] 
+  },
+  { 
+    id: 'bim-construct', 
+    name: 'BIM Construct', 
+    courses: ['Building Information Modeling', 'Construction Management', 'Architectural Design'] 
+  }
+];
 
 const RegistrationForm = ({ onMessage }) => {
   const [formData, setFormData] = useState({
@@ -9,12 +48,17 @@ const RegistrationForm = ({ onMessage }) => {
     phone: '',
     qualification: '',
     passingYear: '',
+    service: '',
+    course: '',
     message: ''
   });
+  
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { fullName, email, phone, qualification, passingYear, message } = formData;
+  const { fullName, email, phone, qualification, passingYear, message, service, course } = formData;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,6 +75,21 @@ const RegistrationForm = ({ onMessage }) => {
       });
     }
   };
+
+  // Update available courses when service changes
+  useEffect(() => {
+    if (service) {
+      const selectedService = SERVICES.find(s => s.name === service);
+      if (selectedService) {
+        setAvailableCourses(selectedService.courses);
+        // Reset course when service changes
+        setFormData(prev => ({ ...prev, course: '' }));
+      }
+    } else {
+      setAvailableCourses([]);
+      setFormData(prev => ({ ...prev, course: '' }));
+    }
+  }, [service]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -57,6 +116,9 @@ const RegistrationForm = ({ onMessage }) => {
     } else if (passingYear < 1900 || passingYear > currentYear + 5) {
       newErrors.passingYear = `Year must be between 1900 and ${currentYear + 5}`;
     }
+    
+    if (!service) newErrors.service = 'Please select a service';
+    if (!course) newErrors.course = 'Please select a course';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -85,6 +147,8 @@ const RegistrationForm = ({ onMessage }) => {
         phone,
         qualification,
         passingYear: Number(passingYear),
+        service,
+        course,
         message: message || undefined
       });
       
@@ -112,9 +176,10 @@ const RegistrationForm = ({ onMessage }) => {
 
   return (
     <div className="registration-form-container">
+      <h2>Registration Form</h2>
       <form onSubmit={handleSubmit} className="registration-form">
         <div className="form-group">
-          <label htmlFor="fullName">Full Name *</label>
+          <label htmlFor="fullName" className="required">Full Name</label>
           <input
             type="text"
             id="fullName"
@@ -122,13 +187,13 @@ const RegistrationForm = ({ onMessage }) => {
             value={fullName}
             onChange={handleChange}
             className={errors.fullName ? 'error' : ''}
-            placeholder="Enter your full name"
+            required
           />
           {errors.fullName && <span className="error-message">{errors.fullName}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="email">Email *</label>
+          <label htmlFor="email" className="required">Email</label>
           <input
             type="email"
             id="email"
@@ -136,13 +201,13 @@ const RegistrationForm = ({ onMessage }) => {
             value={email}
             onChange={handleChange}
             className={errors.email ? 'error' : ''}
-            placeholder="Enter your email"
+            required
           />
           {errors.email && <span className="error-message">{errors.email}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="phone">Phone Number *</label>
+          <label htmlFor="phone" className="required">Phone Number</label>
           <input
             type="tel"
             id="phone"
@@ -150,13 +215,14 @@ const RegistrationForm = ({ onMessage }) => {
             value={phone}
             onChange={handleChange}
             className={errors.phone ? 'error' : ''}
-            placeholder="Enter your 10-digit phone number"
+            placeholder="10-digit number"
+            required
           />
           {errors.phone && <span className="error-message">{errors.phone}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="qualification">Qualification *</label>
+          <label htmlFor="qualification" className="required">Highest Qualification</label>
           <input
             type="text"
             id="qualification"
@@ -164,13 +230,13 @@ const RegistrationForm = ({ onMessage }) => {
             value={qualification}
             onChange={handleChange}
             className={errors.qualification ? 'error' : ''}
-            placeholder="e.g., B.Tech, BCA, MCA, etc."
+            required
           />
           {errors.qualification && <span className="error-message">{errors.qualification}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="passingYear">Passing Year *</label>
+          <label htmlFor="passingYear" className="required">Year of Passing</label>
           <input
             type="number"
             id="passingYear"
@@ -180,9 +246,54 @@ const RegistrationForm = ({ onMessage }) => {
             min="1900"
             max={new Date().getFullYear() + 5}
             className={errors.passingYear ? 'error' : ''}
-            placeholder="e.g., 2023"
+            required
           />
           {errors.passingYear && <span className="error-message">{errors.passingYear}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="service" className="required">Select Service</label>
+          <select
+            id="service"
+            name="service"
+            value={service}
+            onChange={handleChange}
+            className={errors.service ? 'error' : ''}
+            required
+          >
+            <option value="">-- Select a service --</option>
+            {SERVICES.map(service => (
+              <option key={service.id} value={service.name}>
+                {service.name}
+              </option>
+            ))}
+          </select>
+          {errors.service && <span className="error-message">{errors.service}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="course" className="required">Select Course</label>
+          <select
+            id="course"
+            name="course"
+            value={course}
+            onChange={handleChange}
+            disabled={!service || availableCourses.length === 0}
+            className={errors.course ? 'error' : ''}
+            required
+          >
+            <option value="">-- Select a course --</option>
+            {availableCourses.map((course, index) => (
+              <option key={index} value={course}>
+                {course}
+              </option>
+            ))}
+          </select>
+          {isLoadingCourses ? (
+            <div className="loading-text">Loading courses...</div>
+          ) : errors.course ? (
+            <span className="error-message">{errors.course}</span>
+          ) : null}
         </div>
 
         <div className="form-group">
@@ -193,7 +304,7 @@ const RegistrationForm = ({ onMessage }) => {
             value={message}
             onChange={handleChange}
             rows="4"
-            placeholder="Any additional information about your projects..."
+            placeholder="Any additional information you'd like to share..."
           />
         </div>
 

@@ -1,18 +1,52 @@
-import React, { useState, useEffect, useRef } from "react";
-import "./AdminDashboard.css";
-import axios from "axios";
-import { FaEye, FaTrash, FaSyncAlt, FaSearch } from "react-icons/fa";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import './AdminDashboard.css';
+import axios from 'axios';
+import { FaEye, FaTrash, FaSyncAlt, FaSearch } from 'react-icons/fa';
 import io from 'socket.io-client';
 
-const API_URL = 'http://localhost:5000/api/registrations';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/registrations';
 
-// Fixed admin credentials
-const ADMIN_CREDENTIALS = {
-    username: 'admin',
-    password: 'admin@123' // In a real app, use proper authentication with hashed passwords
-};
+// Services and their respective courses - should match the RegistrationForm
+const SERVICES = [
+  { 
+    id: 'edutech', 
+    name: 'EduTech', 
+    courses: ['Online Tutoring', 'E-Learning Platform', 'Educational Apps'] 
+  },
+  { 
+    id: 'digidhvani', 
+    name: 'DigiDhwani', 
+    courses: ['Digital Marketing', 'Content Creation', 'Social Media Management'] 
+  },
+  { 
+    id: 'builddspace', 
+    name: 'BuilddSpace', 
+    courses: ['Co-Working Space', 'Startup Incubation', 'Mentorship Programs'] 
+  },
+  { 
+    id: 'eduphygital', 
+    name: 'EduPhyGital', 
+    courses: ['Blended Learning', 'Hybrid Education', 'Digital Classrooms'] 
+  },
+  { 
+    id: 'mechsetu', 
+    name: 'MechSetu', 
+    courses: ['Mechanical Engineering', 'CAD/CAM Training', 'Industrial Automation'] 
+  },
+  { 
+    id: 'nalaneel', 
+    name: 'Nalaneel', 
+    courses: ['Research & Development', 'Innovation Lab', 'Tech Incubation'] 
+  },
+  { 
+    id: 'bim-construct', 
+    name: 'BIM Construct', 
+    courses: ['Building Information Modeling', 'Construction Management', 'Architectural Design'] 
+  }
+];
 
 const AdminDashboard = () => {
+    // State management
     const [registrations, setRegistrations] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -26,13 +60,27 @@ const AdminDashboard = () => {
         hasPreviousPage: false,
         total: 0
     });
-    const socketRef = useRef(null);
-
     const [services, setServices] = useState([]);
     const [serviceCourses, setServiceCourses] = useState({});
+    
+    // Refs
+    const socketRef = useRef(null);
 
-    // Fetch registrations from the server with pagination and filtering
-    const fetchRegistrations = async (page = 1, search = '', service = '') => {
+    // Format date for display
+    const formatDate = useCallback((dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }, []);
+
+    // Memoized fetch function to prevent unnecessary re-renders
+    const fetchRegistrations = useCallback(async (page = 1, search = '', service = '') => {
         console.log('Fetching registrations...', { page, search, service });
         const loadingState = isRefreshing ? setIsRefreshing : setIsLoading;
         loadingState(true);
@@ -48,111 +96,82 @@ const AdminDashboard = () => {
             const response = await axios.get(`${API_URL}?${params.toString()}`);
             console.log('API Response:', response.data);
             
-            if (response.data && response.data.success) {
-                // Process the response data
+            if (response.data?.success) {
                 const registrationsData = response.data.data || [];
                 const { total, totalPages, hasNextPage, hasPreviousPage } = response.data;
-                
-                console.log('Raw registrations data:', registrationsData);
                 
                 if (!Array.isArray(registrationsData)) {
                     throw new Error('Invalid data format received from server');
                 }
                 
-                // Extract unique services from all registrations (not just current page)
-                // We'll get this from the server in a real app, but for now, we'll use the current page
-                const uniqueServices = ['All', ...new Set(registrationsData
-                    .map(reg => reg && reg.service)
-                    .filter(Boolean)
-                )];
-                
-                console.log('Unique services:', uniqueServices);
-                
-                // Create services array with id and name
-                const servicesList = uniqueServices.map((service) => ({
-                    id: service === 'All' ? 'all' : service.toLowerCase().replace(/\s+/g, '-'),
-                    name: service
+                // Process registrations
+                const processedRegistrations = registrationsData.map(reg => ({
+                    ...reg,
+                    _id: reg._id || Date.now().toString(),
+                    fullName: reg.fullName || 'Unknown',
+                    email: reg.email || 'No email',
+                    phone: reg.phone || 'No phone',
+                    service: reg.service || 'General',
+                    course: reg.course || 'Not specified',
+                    qualification: reg.qualification || 'Not specified',
+                    passingYear: reg.passingYear || 'N/A',
+                    createdAt: reg.createdAt || new Date().toISOString()
                 }));
                 
-                // Create service courses mapping
+                // Extract unique services and courses
+                const servicesSet = new Set();
                 const coursesMap = {};
-                registrationsData.forEach(reg => {
-                    if (reg && reg.service && reg.course) {
+                
+                processedRegistrations.forEach(reg => {
+                    if (reg.service) {
+                        servicesSet.add(reg.service);
                         if (!coursesMap[reg.service]) {
                             coursesMap[reg.service] = new Set();
                         }
-                        coursesMap[reg.service].add(reg.course);
+                        if (reg.course) {
+                            coursesMap[reg.service].add(reg.course);
+                        }
                     }
                 });
                 
-                // Convert Sets to Arrays
-                Object.keys(coursesMap).forEach(service => {
-                    coursesMap[service] = Array.from(coursesMap[service]);
-                });
+                // Update state
+                setRegistrations(processedRegistrations);
+                setServices(Array.from(servicesSet).map(service => ({
+                    id: service.toLowerCase().replace(/\s+/g, '-'),
+                    name: service
+                })));
                 
-                console.log('Courses map:', coursesMap);
+                setServiceCourses(
+                    Object.fromEntries(
+                        Object.entries(coursesMap).map(([service, courses]) => [
+                            service,
+                            Array.from(courses)
+                        ])
+                    )
+                );
                 
-                setServices(servicesList);
-                setServiceCourses(coursesMap);
-                
-                // Update pagination state
                 setPagination({
                     currentPage: page,
                     totalPages,
                     hasNextPage,
                     hasPreviousPage,
-                    total: response.data.total || 0
+                    total
                 });
-                
-                // Process registrations
-                const processedRegistrations = registrationsData
-                    .filter(reg => reg) // Filter out any null/undefined entries
-                    .map(reg => ({
-                        ...reg,
-                        _id: reg._id || Date.now().toString(),
-                        fullName: reg.fullName || 'Unknown',
-                        email: reg.email || 'No email',
-                        phone: reg.phone || 'No phone',
-                        service: reg.service || 'General',
-                        course: reg.course || 'Not specified',
-                        qualification: reg.qualification || 'Not specified',
-                        passingYear: reg.passingYear || 'N/A',
-                        createdAt: reg.createdAt ? new Date(reg.createdAt).toISOString() : new Date().toISOString()
-                    }));
-                
-                console.log('Processed registrations:', processedRegistrations);
-                setRegistrations(processedRegistrations);
             } else {
-                console.error('Invalid response format:', response.data);
-                setError('Invalid data received from server');
+                throw new Error(response.data?.message || 'Failed to fetch registrations');
             }
         } catch (error) {
             console.error('Error fetching registrations:', error);
-            setError('Failed to fetch registrations. Please try again later.');
+            setError(error.message || 'Failed to fetch registrations. Please try again later.');
         } finally {
-            loadingState(false);
+            setIsLoading(false);
             setIsRefreshing(false);
         }
-    };
-
-    // Fetch registrations on component mount
-    useEffect(() => {
-        fetchRegistrations();
-        
-        // Cleanup function
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-            }
-        };
-    }, []);
+    }, [isRefreshing]);
     
     // Initialize WebSocket connection
     useEffect(() => {
-        // Only initialize in browser environment
-        if (typeof window === 'undefined') {
-            return () => {};
-        }
+        if (typeof window === 'undefined') return;
 
         // Request notification permission if not already granted
         if (Notification.permission !== 'denied') {
@@ -173,14 +192,11 @@ const AdminDashboard = () => {
         
         socketRef.current = socket;
         
-        // Debug logging
-        console.log('Initializing WebSocket connection...');
-        
         // Handle new registration event
         const handleNewRegistration = (newRegistration) => {
             console.log('New registration received:', newRegistration);
             
-            // Process the new registration to match our data structure
+            // Process the new registration
             const processedRegistration = {
                 ...newRegistration,
                 _id: newRegistration._id || Date.now().toString(),
@@ -194,7 +210,7 @@ const AdminDashboard = () => {
                 createdAt: newRegistration.createdAt || new Date().toISOString()
             };
             
-            // Update registrations state if not already present
+            // Update registrations state
             setRegistrations(prevRegistrations => {
                 const exists = prevRegistrations.some(reg => 
                     reg._id === processedRegistration._id || 
@@ -205,7 +221,6 @@ const AdminDashboard = () => {
                     return [processedRegistration, ...prevRegistrations];
                 }
                 
-                // If it exists, update it
                 return prevRegistrations.map(reg => 
                     (reg._id === processedRegistration._id || 
                      (reg.email === processedRegistration.email && reg.email !== 'No email')) 
@@ -214,42 +229,7 @@ const AdminDashboard = () => {
                 );
             });
             
-            // Update services list if needed
-            setServices(prevServices => {
-                const serviceName = processedRegistration.service || 'General';
-                const serviceExists = prevServices.some(s => s.name === serviceName);
-                
-                if (!serviceExists) {
-                    return [
-                        ...prevServices,
-                        {
-                            id: serviceName.toLowerCase().replace(/\s+/g, '-'),
-                            name: serviceName
-                        }
-                    ];
-                }
-                return prevServices;
-            });
-            
-            // Update courses mapping if needed
-            setServiceCourses(prevCourses => {
-                const serviceName = processedRegistration.service || 'General';
-                const courseName = processedRegistration.course || 'Not specified';
-                
-                const updatedCourses = { ...prevCourses };
-                
-                if (!updatedCourses[serviceName]) {
-                    updatedCourses[serviceName] = [];
-                }
-                
-                if (!updatedCourses[serviceName].includes(courseName)) {
-                    updatedCourses[serviceName] = [...updatedCourses[serviceName], courseName];
-                }
-                
-                return updatedCourses;
-            });
-            
-            // Show a notification to the user
+            // Show notification
             if (Notification.permission === 'granted') {
                 new Notification('New Registration', {
                     body: `${processedRegistration.fullName} registered for ${processedRegistration.course}`,
@@ -261,7 +241,6 @@ const AdminDashboard = () => {
         // Set up event listeners
         socket.on('connect', () => {
             console.log('✅ Connected to WebSocket server');
-            // Join a room for admin updates
             socket.emit('joinAdminRoom');
         });
         
@@ -271,102 +250,40 @@ const AdminDashboard = () => {
         
         socket.on('connect_error', (error) => {
             console.error('❌ WebSocket connection error:', error);
-            // Attempt to reconnect after a delay
-            setTimeout(() => {
-                console.log('Attempting to reconnect WebSocket...');
-                socket.connect();
-            }, 5000);
+            setTimeout(() => socket.connect(), 5000);
         });
         
         // Listen for new registration events
         socket.on('newRegistration', handleNewRegistration);
         
-        // Cleanup function
+        // Cleanup
         return () => {
             console.log('Cleaning up WebSocket connection...');
             socket.off('newRegistration', handleNewRegistration);
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                socketRef.current = null;
-            }
+            socket.disconnect();
         };
     }, []);
-
-    // Filter registrations by search term and selected service
-    const filteredRegistrations = registrations.filter((reg) => {
-        if (!reg) return false;
-        
-        // Filter by search term
-        const searchFields = [
-            reg.fullName || '',
-            reg.email || '',
-            reg.phone || '',
-            reg.qualification || '',
-            reg.passingYear || '',
-            reg.service || '',
-            reg.course || '',
-        ];
-        
-        const matchesSearch = searchFields.some(
-            field => field.toLowerCase().includes(searchTerm.toLowerCase())
-        ) || searchTerm === '';
-            
-        // Filter by selected service
-        const matchesService = selectedService === 'All' || 
-            reg.service === selectedService;
-            
-        return matchesSearch && matchesService;
-    });
     
-    // Get all unique services from registrations for the filter dropdown
-    const allServices = ['All', ...new Set(registrations.map(reg => reg.service).filter(Boolean))];
-
-    const studentsForSelectedService = filteredRegistrations.length; 
+    // Initial data fetch
+    useEffect(() => {
+        fetchRegistrations();
+    }, [fetchRegistrations]);
     
-    // Count registrations per service for the sidebar
-    const serviceCounts = services.reduce((acc, service) => {
-        acc[service.name] = registrations.filter(reg => reg.service === service.name).length;
-        return acc;
-    }, { 'All': registrations.length });
-
-    // Format date to display in table
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
     // Handle search input change
-    const handleSearch = (e) => {
-        const searchValue = e.target.value;
-        setSearchTerm(searchValue);
-        // Reset to first page when searching
-        fetchRegistrations(1, searchValue, selectedService);
-    };
-
-    // Handle service filter change
-    const handleServiceChange = (e) => {
-        const serviceValue = e.target.value;
-        setSelectedService(serviceValue);
-        // Reset to first page when changing service filter
-        fetchRegistrations(1, searchTerm, serviceValue);
-    };
+    const handleSearch = useCallback((e) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        fetchRegistrations(1, value, selectedService);
+    }, [fetchRegistrations, selectedService]);
 
     // Handle refresh button click
-    const handleRefresh = () => {
+    const handleRefresh = useCallback(() => {
         setIsRefreshing(true);
-        fetchRegistrations(1, searchTerm, selectedService);
-    };
-    
+        fetchRegistrations(pagination.currentPage, searchTerm, selectedService);
+    }, [fetchRegistrations, pagination.currentPage, searchTerm, selectedService]);
+
     // Handle view student details
-    const handleViewStudent = (student) => {
-        // Format the student details for display
+    const handleViewStudent = useCallback((student) => {
         const details = [
             `Name: ${student.fullName || 'N/A'}`,
             `Email: ${student.email || 'N/A'}`,
@@ -375,45 +292,128 @@ const AdminDashboard = () => {
             `Course: ${student.course || 'N/A'}`,
             `Qualification: ${student.qualification || 'N/A'}`,
             `Year: ${student.passingYear || 'N/A'}`,
-            `Registered: ${student.createdAt ? new Date(student.createdAt).toLocaleString() : 'N/A'}`
+            `Registered: ${student.createdAt ? formatDate(student.createdAt) : 'N/A'}`
         ].join('\n');
         
         alert(details);
-    };
-    
+    }, [formatDate]);
+
     // Handle delete student
-    const handleDeleteStudent = async (id) => {
+    const handleDeleteStudent = useCallback(async (id) => {
         if (window.confirm('Are you sure you want to delete this registration?')) {
             try {
                 await axios.delete(`${API_URL}/${id}`);
-                setRegistrations(registrations.filter(reg => reg._id !== id));
+                setRegistrations(prev => prev.filter(reg => reg._id !== id));
             } catch (err) {
                 console.error('Error deleting registration:', err);
                 alert('Failed to delete registration. Please try again.');
             }
         }
-    };
+    }, []);
+    
+    // Get available courses for selected service
+    const getAvailableCourses = useCallback((serviceName) => {
+        if (!serviceName || serviceName === 'All') return [];
+        const service = SERVICES.find(s => s.name === serviceName);
+        return service ? service.courses : [];
+    }, []);
 
-    // Add a spinning animation for the refresh icon
-    const spinning = {
-        animation: 'spin 1s linear infinite',
-        '@keyframes spin': {
-            '0%': { transform: 'rotate(0deg)' },
-            '100%': { transform: 'rotate(360deg)' }
-        }
-    };
-
+    // Filter registrations based on search, service, and course
+    const filteredRegistrations = useMemo(() => {
+        return registrations.filter(reg => {
+            if (!reg) return false;
+            
+            // Filter by search term
+            const searchFields = [
+                reg.fullName || '',
+                reg.email || '',
+                reg.phone || '',
+                reg.qualification || '',
+                reg.passingYear ? reg.passingYear.toString() : '',
+                reg.service || '',
+                reg.course || '',
+                reg.message || ''
+            ];
+            
+            const matchesSearch = searchTerm === '' || searchFields.some(
+                field => field.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+                
+            // Filter by selected service
+            const matchesService = selectedService === 'All' || reg.service === selectedService;
+                
+            return matchesSearch && matchesService;
+        });
+    }, [registrations, searchTerm, selectedService]);
+    
+    // Calculate service counts for sidebar
+    const serviceCounts = useMemo(() => {
+        const counts = { 'All': registrations.length };
+        // Initialize all services with count 0
+        SERVICES.forEach(service => {
+            counts[service.name] = 0;
+        });
+        // Count actual registrations
+        registrations.forEach(reg => {
+            if (reg.service) {
+                counts[reg.service] = (counts[reg.service] || 0) + 1;
+            }
+        });
+        return counts;
+    }, [registrations]);
+    
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="admin-dashboard">
+                <div className="loading">Loading registrations...</div>
+            </div>
+        );
+    }
+    
+    // Error state
+    if (error) {
+        return (
+            <div className="admin-dashboard">
+                <div className="error">
+                    <p>{error}</p>
+                    <button onClick={() => fetchRegistrations()} className="refresh-btn">
+                        <FaSyncAlt className={isRefreshing ? 'spinning' : ''} />
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    
+    // Main render
     return (
         <div className="admin-dashboard">
             <header className="dashboard-header">
-                <div className="registrations-count">
-                    Showing {filteredRegistrations.length} of {registrations.length} total registrations
-                    {selectedService !== 'All' && ` (Filtered by: ${selectedService})`}
-                </div>
+                <h1>Admin Dashboard</h1>
                 <div className="header-actions">
+                    <div className="search-box">
+                        <FaSearch className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, email, phone, etc..."
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="search-input"
+                        />
+                        {searchTerm && (
+                            <button 
+                                className="clear-search"
+                                onClick={() => setSearchTerm('')}
+                                title="Clear search"
+                            >
+                                &times;
+                            </button>
+                        )}
+                    </div>
                     <button 
-                        className="refresh-btn" 
-                        onClick={handleRefresh}
+                        onClick={handleRefresh} 
+                        className="refresh-btn"
                         disabled={isRefreshing}
                     >
                         <FaSyncAlt className={isRefreshing ? 'spinning' : ''} />
@@ -421,16 +421,17 @@ const AdminDashboard = () => {
                     </button>
                 </div>
             </header>
-
+            
             <div className="dashboard-container">
                 <aside className="sidebar">
-                    <h3>Services Statistics</h3>
+                    <h3>Services</h3>
                     <ul className="service-list">
                         <li 
                             className={selectedService === 'All' ? 'active' : ''}
                             onClick={() => setSelectedService('All')}
                         >
-                            All Services ({serviceCounts['All'] || 0})
+                            <span>All Services</span>
+                            <span className="count">{serviceCounts['All'] || 0}</span>
                         </li>
                         {services.map(service => (
                             <li 
@@ -438,126 +439,155 @@ const AdminDashboard = () => {
                                 className={selectedService === service.name ? 'active' : ''}
                                 onClick={() => setSelectedService(service.name)}
                             >
-                                {service.name} ({serviceCounts[service.name] || 0})
+                                <span>{service.name}</span>
+                                <span className="count">{serviceCounts[service.name] || 0}</span>
                             </li>
                         ))}
                     </ul>
                 </aside>
-
+                
                 <main className="main-content">
                     <div className="filters">
-                        <div className="search-box">
-                            <FaSearch className="search-icon" />
-                            <input
-                                type="text"
-                                placeholder="Search in all fields..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="form-group">
+                            <label htmlFor="service-filter">Service:</label>
+                            <select 
+                                id="service-filter" 
+                                value={selectedService}
+                                onChange={(e) => setSelectedService(e.target.value)}
+                                className="filter-select"
+                            >
+                                <option value="All">All Services</option>
+                                {SERVICES.map(service => (
+                                    <option key={service.id} value={service.name}>
+                                        {service.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                        <select 
-                            value={selectedService}
-                            onChange={(e) => setSelectedService(e.target.value)}
-                            className="service-filter"
-                        >
-                            {allServices.map((service, index) => (
-                                <option key={index} value={service}>
-                                    {service}
-                                </option>
-                            ))}
-                        </select>
+                        {selectedService !== 'All' && (
+                            <div className="form-group">
+                                <label htmlFor="course-filter">Course:</label>
+                                <select 
+                                    id="course-filter" 
+                                    className="filter-select"
+                                    disabled={!selectedService || selectedService === 'All'}
+                                >
+                                    <option value="">All Courses</option>
+                                    {serviceCourses[selectedService]?.map((course, index) => (
+                                        <option key={index} value={course}>
+                                            {course}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
-
-                    <div className="stats-card">
-                        <h3>Students Registered for {selectedService || 'All Services'}: {studentsForSelectedService}</h3>
-                    </div>
-
+                    
                     <div className="registrations-table-container">
-                        <div className="table-responsive">
-                            <table className="registrations-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Service</th>
-                                        <th>Course</th>
-                                        <th>Qualification</th>
-                                        <th>Year</th>
-                                        <th>Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {isLoading ? (
+                        {filteredRegistrations.length > 0 ? (
+                            <div className="table-responsive">
+                                <table className="registrations-table">
+                                    <thead>
                                         <tr>
-                                            <td colSpan="9" className="loading-cell">
-                                                <div className="spinner"></div>
-                                                <span>Loading registrations...</span>
-                                            </td>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Service</th>
+                                            <th>Course</th>
+                                            <th>Qualification</th>
+                                            <th>Year</th>
+                                            <th>Registered</th>
+                                            <th>Actions</th>
                                         </tr>
-                                    ) : error ? (
-                                        <tr>
-                                            <td colSpan="9" className="error-cell">
-                                                {error}
-                                            </td>
-                                        </tr>
-                                    ) : filteredRegistrations.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="9" className="no-data">
-                                                No registrations found
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredRegistrations.map(registration => (
-                                            <tr key={registration._id} className="registration-row">
+                                    </thead>
+                                    <tbody>
+                                        {filteredRegistrations.map(registration => (
+                                            <tr key={registration._id}>
                                                 <td>
-                                                    <div className="student-name">
+                                                    <span className="truncate" title={registration.fullName}>
                                                         {registration.fullName}
-                                                        <span className="service-badge">
-                                                            {registration.service || 'General'}
-                                                        </span>
-                                                    </div>
+                                                    </span>
                                                 </td>
-                                                <td>{registration.email || 'N/A'}</td>
+                                                <td>
+                                                    <span className="truncate" title={registration.email}>
+                                                        {registration.email}
+                                                    </span>
+                                                </td>
                                                 <td>{registration.phone || 'N/A'}</td>
-                                                <td className="service-cell">
-                                                    {registration.service || 'N/A'}
+                                                <td>
+                                                    <span className="truncate" title={registration.service}>
+                                                        {registration.service || 'N/A'}
+                                                    </span>
                                                 </td>
-                                                <td>{registration.course || 'N/A'}</td>
-                                                <td>{registration.qualification || 'N/A'}</td>
+                                                <td>
+                                                    <span className="truncate" title={registration.course}>
+                                                        {registration.course || 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className="truncate" title={registration.qualification}>
+                                                        {registration.qualification || 'N/A'}
+                                                    </span>
+                                                </td>
                                                 <td>{registration.passingYear || 'N/A'}</td>
-                                                <td>{new Date(registration.createdAt).toLocaleDateString()}</td>
+                                                <td>{formatDate(registration.createdAt)}</td>
                                                 <td className="actions">
                                                     <button 
+                                                        className="btn-icon view"
                                                         onClick={() => handleViewStudent(registration)}
-                                                        className="btn-view"
                                                         title="View Details"
                                                     >
                                                         <FaEye />
                                                     </button>
                                                     <button 
+                                                        className="btn-icon delete"
                                                         onClick={() => handleDeleteStudent(registration._id)}
-                                                        className="btn-delete"
-                                                        title="Delete"
+                                                        title="Delete Registration"
                                                     >
                                                         <FaTrash />
                                                     </button>
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="table-footer">
-                            <div className="pagination-info">
-                                Showing {filteredRegistrations.length} of {registrations.length} registrations
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
+                                <div className="table-footer">
+                                    <div className="pagination-info">
+                                        Showing {filteredRegistrations.length} of {pagination.total} registrations
+                                    </div>
+                                    <div className="pagination">
+                                        <button 
+                                            onClick={() => fetchRegistrations(pagination.currentPage - 1, searchTerm, selectedService)}
+                                            disabled={!pagination.hasPreviousPage}
+                                        >
+                                            Previous
+                                        </button>
+                                        <span>Page {pagination.currentPage} of {pagination.totalPages}</span>
+                                        <button 
+                                            onClick={() => fetchRegistrations(pagination.currentPage + 1, searchTerm, selectedService)}
+                                            disabled={!pagination.hasNextPage}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="last-updated">
-                                Last updated: {new Date().toLocaleTimeString()}
+                        ) : (
+                            <div className="no-results">
+                                <p>No registrations found</p>
+                                <button 
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setSelectedService('All');
+                                        fetchRegistrations();
+                                    }} 
+                                    className="clear-filters"
+                                >
+                                    Clear Filters
+                                </button>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </main>
             </div>

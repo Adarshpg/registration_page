@@ -13,11 +13,9 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS and WebSocket Configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5000',
-  'https://adarshpg-registration-page-ok2y.vercel.app'
-];
+const allowedOrigins = process.env.CORS_ORIGINS ? 
+  process.env.CORS_ORIGINS.split(',') : 
+  ['http://localhost:3000', 'http://localhost:5000'];
 
 // Apply CORS to Express app
 app.use(cors({
@@ -26,23 +24,33 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     // Check if the origin is in the allowed list
-    if (allowedOrigins.includes(origin) || 
-        allowedOrigins.some(allowedOrigin => origin.startsWith(allowedOrigin))) {
+    if (allowedOrigins.some(allowedOrigin => 
+      origin === allowedOrigin || 
+      origin.startsWith(allowedOrigin.replace(/\*$/, ''))
+    )) {
       return callback(null, true);
     }
     
+    console.log('CORS blocked for origin:', origin);
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
     return callback(new Error(msg), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Initialize Socket.IO with CORS
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace(/\*$/, '')))) {
+        callback(null, true);
+      } else {
+        console.log('WebSocket CORS blocked for origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
