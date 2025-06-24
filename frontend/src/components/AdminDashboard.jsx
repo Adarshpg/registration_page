@@ -160,7 +160,7 @@ const AdminDashboard = () => {
         }
 
         // Connect to WebSocket server with explicit configuration
-        const socket = io('http://localhost:5000', {
+        const socket = io(process.env.REACT_APP_WS_URL || 'http://localhost:5000', {
             withCredentials: true,
             path: '/socket.io/',
             transports: ['websocket'],
