@@ -97,33 +97,42 @@ const AdminDashboard = () => {
             console.log('API Response:', response.data);
             
             if (response.data?.success) {
-                const registrationsData = response.data.data || [];
+                let registrationsData = response.data.data || [];
                 const { total, totalPages, hasNextPage, hasPreviousPage } = response.data;
                 
                 if (!Array.isArray(registrationsData)) {
-                    throw new Error('Invalid data format received from server');
+                    console.error('Invalid data format received:', registrationsData);
+                    registrationsData = [];
                 }
                 
-                // Process registrations
-                const processedRegistrations = registrationsData.map(reg => ({
-                    ...reg,
-                    _id: reg._id || Date.now().toString(),
-                    fullName: reg.fullName || 'Unknown',
-                    email: reg.email || 'No email',
-                    phone: reg.phone || 'No phone',
-                    service: reg.service || 'General',
-                    course: reg.course || 'Not specified',
-                    qualification: reg.qualification || 'Not specified',
-                    passingYear: reg.passingYear || 'N/A',
-                    createdAt: reg.createdAt || new Date().toISOString()
-                }));
+                // Process registrations with better error handling
+                const processedRegistrations = registrationsData.map(reg => {
+                    try {
+                        return {
+                            _id: reg._id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+                            fullName: reg.fullName || 'Not provided',
+                            email: reg.email || 'Not provided',
+                            phone: reg.phone || 'Not provided',
+                            service: reg.service || 'Not specified',
+                            course: reg.course || 'Not specified',
+                            qualification: reg.qualification || 'Not specified',
+                            passingYear: reg.passingYear || 'N/A',
+                            message: reg.message || '',
+                            createdAt: reg.createdAt || new Date().toISOString(),
+                            updatedAt: reg.updatedAt || new Date().toISOString()
+                        };
+                    } catch (err) {
+                        console.error('Error processing registration:', reg, err);
+                        return null;
+                    }
+                }).filter(Boolean); // Remove any null entries from failed processing
                 
                 // Extract unique services and courses
                 const servicesSet = new Set();
                 const coursesMap = {};
                 
                 processedRegistrations.forEach(reg => {
-                    if (reg.service) {
+                    if (reg && reg.service) {
                         servicesSet.add(reg.service);
                         if (!coursesMap[reg.service]) {
                             coursesMap[reg.service] = new Set();
@@ -136,16 +145,29 @@ const AdminDashboard = () => {
                 
                 // Update state
                 setRegistrations(processedRegistrations);
-                setServices(Array.from(servicesSet).map(service => ({
+                
+                // Add predefined services if none found in the data
+                const allServices = new Set([...SERVICES.map(s => s.name), ...servicesSet]);
+                
+                setServices(Array.from(allServices).map(service => ({
                     id: service.toLowerCase().replace(/\s+/g, '-'),
                     name: service
                 })));
+                
+                // Initialize courses for predefined services
+                SERVICES.forEach(service => {
+                    if (!coursesMap[service.name]) {
+                        coursesMap[service.name] = new Set(service.courses);
+                    } else {
+                        service.courses.forEach(course => coursesMap[service.name].add(course));
+                    }
+                });
                 
                 setServiceCourses(
                     Object.fromEntries(
                         Object.entries(coursesMap).map(([service, courses]) => [
                             service,
-                            Array.from(courses)
+                            Array.from(courses).sort()
                         ])
                     )
                 );
@@ -158,6 +180,7 @@ const AdminDashboard = () => {
                     total
                 });
             } else {
+                console.error('API Error:', response.data);
                 throw new Error(response.data?.message || 'Failed to fetch registrations');
             }
         } catch (error) {
@@ -483,66 +506,93 @@ const AdminDashboard = () => {
                                 <table className="registrations-table">
                                     <thead>
                                         <tr>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Service</th>
-                                            <th>Course</th>
-                                            <th>Qualification</th>
-                                            <th>Year</th>
-                                            <th>Registered</th>
-                                            <th>Actions</th>
+                                            <th className="name-col">Name</th>
+                                            <th className="email-col">Email</th>
+                                            <th className="phone-col">Phone</th>
+                                            <th className="service-col">Service</th>
+                                            <th className="course-col">Course</th>
+                                            <th className="qualification-col">Qualification</th>
+                                            <th className="year-col">Year</th>
+                                            <th className="date-col">Registered</th>
+                                            <th className="actions-col">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredRegistrations.map(registration => (
-                                            <tr key={registration._id}>
-                                                <td>
-                                                    <span className="truncate" title={registration.fullName}>
-                                                        {registration.fullName}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="truncate" title={registration.email}>
-                                                        {registration.email}
-                                                    </span>
-                                                </td>
-                                                <td>{registration.phone || 'N/A'}</td>
-                                                <td>
-                                                    <span className="truncate" title={registration.service}>
-                                                        {registration.service || 'N/A'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="truncate" title={registration.course}>
-                                                        {registration.course || 'N/A'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="truncate" title={registration.qualification}>
-                                                        {registration.qualification || 'N/A'}
-                                                    </span>
-                                                </td>
-                                                <td>{registration.passingYear || 'N/A'}</td>
-                                                <td>{formatDate(registration.createdAt)}</td>
-                                                <td className="actions">
-                                                    <button 
-                                                        className="btn-icon view"
-                                                        onClick={() => handleViewStudent(registration)}
-                                                        title="View Details"
-                                                    >
-                                                        <FaEye />
-                                                    </button>
-                                                    <button 
-                                                        className="btn-icon delete"
-                                                        onClick={() => handleDeleteStudent(registration._id)}
-                                                        title="Delete Registration"
-                                                    >
-                                                        <FaTrash />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {filteredRegistrations.map(registration => {
+                                            if (!registration) return null;
+                                            
+                                            return (
+                                                <tr key={registration._id} className="registration-row">
+                                                    <td className="name-col">
+                                                        <div className="cell-content" title={registration.fullName}>
+                                                            {registration.fullName}
+                                                        </div>
+                                                    </td>
+                                                    <td className="email-col">
+                                                        <div className="cell-content" title={registration.email}>
+                                                            <a href={`mailto:${registration.email}`} className="email-link">
+                                                                {registration.email}
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                    <td className="phone-col">
+                                                        <div className="cell-content">
+                                                            {registration.phone}
+                                                        </div>
+                                                    </td>
+                                                    <td className="service-col">
+                                                        <div className="cell-content" title={registration.service}>
+                                                            <span className="badge">
+                                                                {registration.service}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="course-col">
+                                                        <div className="cell-content" title={registration.course}>
+                                                            {registration.course}
+                                                        </div>
+                                                    </td>
+                                                    <td className="qualification-col">
+                                                        <div className="cell-content" title={registration.qualification}>
+                                                            {registration.qualification}
+                                                        </div>
+                                                    </td>
+                                                    <td className="year-col">
+                                                        <div className="cell-content">
+                                                            {registration.passingYear}
+                                                        </div>
+                                                    </td>
+                                                    <td className="date-col">
+                                                        <div className="cell-content" title={formatDate(registration.createdAt)}>
+                                                            <span className="date">
+                                                                {new Date(registration.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                            <span className="time">
+                                                                {new Date(registration.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="actions-col">
+                                                        <div className="actions-container">
+                                                            <button 
+                                                                className="btn-icon view"
+                                                                onClick={() => handleViewStudent(registration)}
+                                                                title="View Details"
+                                                            >
+                                                                <FaEye />
+                                                            </button>
+                                                            <button 
+                                                                className="btn-icon delete"
+                                                                onClick={() => handleDeleteStudent(registration._id)}
+                                                                title="Delete Registration"
+                                                            >
+                                                                <FaTrash />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                                 
