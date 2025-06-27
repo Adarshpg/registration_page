@@ -191,7 +191,7 @@ const AdminDashboard = () => {
             setRegistrations(processedRegistrations);
             
             // Add predefined services if none found in the data
-            const allServices = new Set([...SERVICES.map(s => s.name), ...servicesSet]);
+
             
 
             
