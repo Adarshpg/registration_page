@@ -2,8 +2,6 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Header.css';
 
-const mediniLogo = '/images/123.png';
-
 const Header = ({ isAuthenticated, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -20,8 +18,8 @@ const Header = ({ isAuthenticated, onLogout }) => {
           <div className="logo-container">
             <Link to="/" className="logo-link">
               <img 
-                src={mediniLogo} 
-                alt="Medini Logo" 
+                src="/123.png" 
+                alt="Logo" 
                 className="logo"
               />
               <span className="logo-text"></span>

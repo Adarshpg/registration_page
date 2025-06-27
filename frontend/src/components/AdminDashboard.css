@@ -1,4 +1,52 @@
 /* Base Styles */
+
+.search-and-refresh-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-box {
+  flex-grow: 1;
+  position: relative;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  font-size: 1rem;
+}
+
+.refresh-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.refresh-btn:disabled {
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+}
+
+.refresh-btn .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 * {
   margin: 0;
   padding: 0;
@@ -586,11 +634,52 @@ body {
 
 .loading-cell,
 .error-cell,
-.no-data {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-  font-style: italic;
+.no-results {
+    text-align: center;
+    padding: 4rem 2rem;
+    margin-top: 2rem;
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #757575;
+    background-color: #f9f9f9;
+}
+
+.no-results-icon {
+    font-size: 4rem;
+    color: #bdbdbd;
+    margin-bottom: 1.5rem;
+}
+
+.no-results h3 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: #424242;
+}
+
+.no-results p {
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.clear-filters-btn {
+    padding: 0.8rem 1.6rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.clear-filters-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
 }
 
 .loading-cell {
@@ -613,14 +702,21 @@ body {
     to { transform: rotate(360deg); }
 }
 
-.table-footer {
+.controls-container {
     display: flex;
     justify-content: space-between;
-    padding: 12px 16px;
-    background-color: #f9fafc;
-    border-top: 1px solid #eee;
-    font-size: 0.85rem;
-    color: #666;
+    align-items: center;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.search-and-refresh-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .last-updated {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './AdminDashboard.css';
 import axios from 'axios';
-import { FaEye, FaTrash, FaSyncAlt, FaSearch } from 'react-icons/fa';
+import { FaEye, FaTrash, FaSyncAlt, FaFileAlt } from 'react-icons/fa';
 import io from 'socket.io-client';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/registrations';
@@ -21,12 +21,12 @@ const SERVICES = [
   { 
     id: 'builddspace', 
     name: 'BuilddSpace', 
-    courses: ['Co-Working Space', 'Startup Incubation', 'Mentorship Programs'] 
+    courses: ['Startup Incubation', 'Startup support'] 
   },
   { 
     id: 'eduphygital', 
     name: 'EduPhyGital', 
-    courses: ['Blended Learning', 'Hybrid Education', 'Digital Classrooms'] 
+    courses: ['centre of excellence', 'Hybrid Education', 'centre of expertise'] 
   },
   { 
     id: 'mechsetu', 
@@ -36,7 +36,7 @@ const SERVICES = [
   { 
     id: 'nalaneel', 
     name: 'Nalaneel', 
-    courses: ['Research & Development', 'Innovation Lab', 'Tech Incubation'] 
+    courses: ['Custom Software Development', 'Web Development', 'Mobile App Development', 'Cloud Solutions'] 
   },
   { 
     id: 'bim-construct', 
@@ -61,7 +61,7 @@ const AdminDashboard = () => {
         total: 0
     });
     const [services, setServices] = useState([]);
-    const [serviceCourses, setServiceCourses] = useState({});
+
     
     // Refs
     const socketRef = useRef(null);
@@ -198,23 +198,7 @@ const AdminDashboard = () => {
                 name: service
             })));
             
-            // Initialize courses for predefined services
-            SERVICES.forEach(service => {
-                if (!coursesMap[service.name]) {
-                    coursesMap[service.name] = new Set(service.courses);
-                } else {
-                    service.courses.forEach(course => coursesMap[service.name].add(course));
-                }
-            });
-            
-            setServiceCourses(
-                Object.fromEntries(
-                    Object.entries(coursesMap).map(([service, courses]) => [
-                        service,
-                        Array.from(courses).sort()
-                    ])
-                )
-            );
+
             
             setPagination({
                 currentPage: paginationData.currentPage,
@@ -485,43 +469,45 @@ const AdminDashboard = () => {
             </div>
         );
     }
-    
-    // Main render
+
     return (
         <div className="admin-dashboard">
             <header className="dashboard-header">
                 <h1>Admin Dashboard</h1>
                 <div className="header-actions">
-                    <div className="search-box">
-                        <FaSearch className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search by name, email, phone, etc..."
-                            value={searchTerm}
-                            onChange={handleSearch}
-                            className="search-input"
-                        />
-                        {searchTerm && (
-                            <button 
-                                className="clear-search"
-                                onClick={() => setSearchTerm('')}
-                                title="Clear search"
-                            >
-                                &times;
-                            </button>
-                        )}
+                    <div className="search-and-refresh-container">
+                        <div className="search-box">
+
+                            <input
+                                type="text"
+                                placeholder="Search by name, email, phone, etc..."
+                                value={searchTerm}
+                                onChange={handleSearch}
+                                className="search-input"
+                                aria-label="Search registrations"
+                            />
+                            {searchTerm && (
+                                <button
+                                    className="clear-search"
+                                    onClick={() => setSearchTerm('')}
+                                    title="Clear search"
+                                >
+                                    &times;
+                                </button>
+                            )}
+                        </div>
+                        <button
+                            onClick={handleRefresh}
+                            className={`refresh-btn ${isRefreshing ? 'refreshing' : ''}`}
+                            disabled={isRefreshing}
+                            title="Refresh data"
+                        >
+                            <FaSyncAlt className={isRefreshing ? 'spin' : ''} />
+                            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+                        </button>
                     </div>
-                    <button 
-                        onClick={handleRefresh} 
-                        className="refresh-btn"
-                        disabled={isRefreshing}
-                    >
-                        <FaSyncAlt className={isRefreshing ? 'spinning' : ''} />
-                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                    </button>
                 </div>
             </header>
-            
             <div className="dashboard-container">
                 <aside className="sidebar">
                     <h3>Services</h3>
@@ -533,7 +519,7 @@ const AdminDashboard = () => {
                             <span>All Services</span>
                             <span className="count">{serviceCounts['All'] || 0}</span>
                         </li>
-                        {services.map(service => (
+                        {SERVICES.map(service => (
                             <li 
                                 key={service.id}
                                 className={selectedService === service.name ? 'active' : ''}
@@ -564,23 +550,7 @@ const AdminDashboard = () => {
                                 ))}
                             </select>
                         </div>
-                        {selectedService !== 'All' && (
-                            <div className="form-group">
-                                <label htmlFor="course-filter">Course:</label>
-                                <select 
-                                    id="course-filter" 
-                                    className="filter-select"
-                                    disabled={!selectedService || selectedService === 'All'}
-                                >
-                                    <option value="">All Courses</option>
-                                    {serviceCourses[selectedService]?.map((course, index) => (
-                                        <option key={index} value={course}>
-                                            {course}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
+
                     </div>
                     
                     <div className="registrations-table-container">
@@ -593,7 +563,7 @@ const AdminDashboard = () => {
                                             <th className="email-col">Email</th>
                                             <th className="phone-col">Phone</th>
                                             <th className="service-col">Service</th>
-                                            <th className="course-col">Course</th>
+
                                             <th className="qualification-col">Qualification</th>
                                             <th className="year-col">Passing Year</th>
                                             <th className="date-col">Date Registered</th>
@@ -628,11 +598,7 @@ const AdminDashboard = () => {
                                                             {registration.service}
                                                         </div>
                                                     </td>
-                                                    <td className="course-col">
-                                                        <div className="cell-content" title={registration.course}>
-                                                            {registration.course}
-                                                        </div>
-                                                    </td>
+
                                                     <td className="qualification-col">
                                                         <div className="cell-content" title={registration.qualification}>
                                                             {registration.qualification}
@@ -701,14 +667,16 @@ const AdminDashboard = () => {
                             </div>
                         ) : (
                             <div className="no-results">
-                                <p>No registrations found</p>
+                                <FaFileAlt className="no-results-icon" />
+                                <h3>No Registrations Found</h3>
+                                <p>There are no registrations matching your current filters.</p>
                                 <button 
                                     onClick={() => {
                                         setSearchTerm('');
                                         setSelectedService('All');
                                         fetchRegistrations();
                                     }} 
-                                    className="clear-filters"
+                                    className="clear-filters-btn"
                                 >
                                     Clear Filters
                                 </button>

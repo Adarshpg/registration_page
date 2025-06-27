@@ -17,12 +17,12 @@ const SERVICES = [
   { 
     id: 'builddspace', 
     name: 'BuilddSpace', 
-    courses: ['Structural Engineering', 'Civil Engineering', 'Mentorship Programs'] 
+    courses: ['Startup Incubation', 'Startup support'] 
   },
   { 
     id: 'eduphygital', 
     name: 'EduPhyGital', 
-    courses: ['Blended Learning', 'Hybrid Education', 'Digital Classrooms'] 
+    courses: ['centre of excellence', 'Hybrid Education', 'centre of expertise'] 
   },
   { 
     id: 'mechsetu', 
@@ -32,7 +32,7 @@ const SERVICES = [
   { 
     id: 'nalaneel', 
     name: 'Nalaneel', 
-    courses: ['AI and ML', 'Data Science', 'java Fullstack','python Fullstack',] 
+    courses: ['Custom Software Development', 'Web Development', 'Mobile App Development','Cloud Solutions',] 
   },
   { 
     id: 'bim-construct', 
