@@ -60,7 +60,7 @@ const AdminDashboard = () => {
         hasPreviousPage: false,
         total: 0
     });
-    const [services, setServices] = useState([]);
+
 
     
     // Refs
@@ -192,11 +192,6 @@ const AdminDashboard = () => {
             
             // Add predefined services if none found in the data
             const allServices = new Set([...SERVICES.map(s => s.name), ...servicesSet]);
-            
-            setServices(Array.from(allServices).map(service => ({
-                id: service.toLowerCase().replace(/\s+/g, '-'),
-                name: service
-            })));
             
 
             
