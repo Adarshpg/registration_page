@@ -31,7 +31,7 @@ const Header = ({ isAuthenticated, onLogout }) => {
             <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
               Home
             </Link>
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <>
                 <Link 
                   to="/registrations" 
@@ -46,14 +46,6 @@ const Header = ({ isAuthenticated, onLogout }) => {
                   Logout
                 </button>
               </>
-            ) : (
-              <Link 
-                to="/login" 
-                className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}
-                state={{ from: location.pathname }}
-              >
-                Admin Login
-              </Link>
             )}
           </nav>
         </div>
