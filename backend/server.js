@@ -19,7 +19,7 @@ let allowedOrigins = [
   'http://localhost:5000',
   'https://adarshpg-registration-page.onrender.com',
   'https://register.medinitechnologies.in',
-  'https://registration-page-q8cs.vercel.app',s
+  'https://registration-page-q8cs.vercel.app',
 ];
 
 // Add any additional origins from environment variable
