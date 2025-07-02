@@ -234,24 +234,7 @@ io.on('connection', (socket) => {
     console.error('Socket error:', error);
   });
 
-  // Handle new registration event
-  socket.on('newRegistration', async (registration) => {
-    try {
-      // Fetch all registrations to ensure we have the latest data
-      const Registration = require('./models/Registration');
-      const registrations = await Registration.find().sort({ createdAt: -1 });
-      
-      // Emit the updated list to all connected clients
-      io.emit('newRegistration', registrations);
-      console.log('Emitted new registration to all clients');
-    } catch (error) {
-      console.error('Error handling new registration:', error);
-    }
-  });
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
 });
 
 // Make io accessible to our router

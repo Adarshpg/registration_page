@@ -142,6 +142,16 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/dashboard" 
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/registrations" replace />
+                ) : (
+                  <Navigate to="/login" state={{ from: '/registrations' }} replace />
+                )
+              } 
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
