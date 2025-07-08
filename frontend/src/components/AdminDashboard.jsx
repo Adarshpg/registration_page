@@ -4,13 +4,13 @@ import axios from 'axios';
 import { FaEye, FaTrash, FaSyncAlt, FaFileAlt } from 'react-icons/fa';
 import io from 'socket.io-client';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/registrations';
+const API_URL = process.env.REACT_APP_API_URL || 'https://adarshpg-registration-page.onrender.com/api/registrations';
 
 // Services and their respective courses - should match the RegistrationForm
 const SERVICES = [
   { 
     id: 'edutech', 
-    name: 'EduTech', 
+    name: 'EduTech',    
     courses: ['Online Tutoring', 'E-Learning Platform', 'Educational Apps'] 
   },
   { 
@@ -223,16 +223,22 @@ const AdminDashboard = () => {
             Notification.requestPermission();
         }
 
+        // Get WebSocket URL from environment or use default
+        const wsUrl = process.env.REACT_APP_WS_URL || 'https://adarshpg-registration-page.onrender.com';
+        console.log('Connecting to WebSocket server at:', wsUrl);
+
         // Connect to WebSocket server with explicit configuration
-        const socket = io(process.env.REACT_APP_WS_URL || 'http://localhost:5000', {
+        const socket = io(wsUrl, {
             withCredentials: true,
             path: '/socket.io/',
-            transports: ['websocket'],
+            transports: ['websocket', 'polling'], // Try both transports
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: Infinity,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            timeout: 20000
+            timeout: 10000,
+            forceNew: true,
+            autoConnect: true
         });
         
         socketRef.current = socket;
@@ -284,19 +290,33 @@ const AdminDashboard = () => {
         };
         
         // Set up event listeners
-        socket.on('connect', () => {
+        const onConnect = () => {
             console.log('✅ Connected to WebSocket server');
             socket.emit('joinAdminRoom');
-        });
+        };
         
-        socket.on('disconnect', (reason) => {
+        const onDisconnect = (reason) => {
             console.log('❌ Disconnected from WebSocket server:', reason);
-        });
+            if (reason === 'io server disconnect') {
+                // Reconnect if the server dropped the connection
+                socket.connect();
+            }
+        };
         
-        socket.on('connect_error', (error) => {
+        const onConnectError = (error) => {
             console.error('❌ WebSocket connection error:', error);
-            setTimeout(() => socket.connect(), 5000);
-        });
+            // Try to reconnect with exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, socket.io.reconnectionAttempts), 30000);
+            console.log(`Will attempt to reconnect in ${delay}ms`);
+            setTimeout(() => {
+                console.log('Attempting to reconnect...');
+                socket.connect();
+            }, delay);
+        };
+
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        socket.on('connect_error', onConnectError);
         
         // Listen for new registration events
         socket.on('newRegistration', handleNewRegistration);
@@ -304,8 +324,25 @@ const AdminDashboard = () => {
         // Cleanup
         return () => {
             console.log('Cleaning up WebSocket connection...');
+            // Remove all event listeners
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
+            socket.off('connect_error', onConnectError);
             socket.off('newRegistration', handleNewRegistration);
-            socket.disconnect();
+            
+            // Disconnect the socket
+            if (socket.connected) {
+                socket.disconnect();
+            }
+            
+            // Clear any pending reconnection attempts
+            if (socket.io && socket.io.reconnectionTimer) {
+                clearTimeout(socket.io.reconnectionTimer);
+            }
+            
+            // Clear the socket reference
+            socketRef.current = null;
+            console.log('WebSocket connection cleaned up successfully');
         };
     }, []);
     
