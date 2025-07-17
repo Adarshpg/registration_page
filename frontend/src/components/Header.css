@@ -1,10 +1,10 @@
 .header {
-  background-color: #356575;
+  background-color: #285969;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 1000;
-  padding: 0.5rem 0; /* Reduced from 1rem */
+  padding: 0.3rem 0; /* Reduced from 1rem */
 }
 
 .header-content {
@@ -21,7 +21,7 @@
 }
 
 .logo {
-  height: 60px;  /* Reduced from 90px */
+  height: 40px;  /* Reduced from 90px */
   width: auto;
   margin-right: 15px;  /* Reduced from 20px */
   border-radius: 4px;
@@ -29,7 +29,7 @@
 }
 
 .logo-text {
-  font-size: 1.5rem;  /* Reduced from 2rem */
+  font-size: 1.2rem;  /* Reduced from 2rem */
   font-weight: bold;
   color: white;
   margin-left: 5px;
@@ -37,14 +37,14 @@
 
 .nav {
   display: flex;
-  gap: 20px;
+  gap: 10px;
 }
 
 .nav-link {
   text-decoration: none;
   color: white !important; /* Force white color */
   font-weight: 500;
-  padding: 0.5rem 1rem;
+  padding: 0.3rem 0;
   border-radius: 4px;
   transition: all 0.3s ease;
   position: relative;
@@ -92,7 +92,7 @@
 }
 
 .logout-btn:hover {
-  background-color: #2a515e !important;
+  background-color: #0f2b35 !important;
   color: white !important;
   transform: translateY(-2px);
 }
@@ -110,7 +110,7 @@
   }
   
   .nav {
-    width: 100%;
+    width: 50%;
     justify-content: center;
   }
 }

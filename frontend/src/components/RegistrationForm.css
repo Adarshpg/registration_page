@@ -124,7 +124,7 @@ textarea {
 }
 
 .submit-btn {
-  background-color: var(--primary-color);
+  background-color: RGB(35, 65, 75 );
   color: white;
   border: none;
   padding: 1rem 2rem;

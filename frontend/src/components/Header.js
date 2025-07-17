@@ -18,7 +18,7 @@ const Header = ({ isAuthenticated, onLogout }) => {
           <div className="logo-container">
             <Link to="/" className="logo-link">
               <img 
-                src="/123.png" 
+                src="/images/123.png" 
                 alt="Logo" 
                 className="logo"
               />
