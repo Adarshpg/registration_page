@@ -25,19 +25,19 @@ const SERVICES = [
     courses: ['Centre of Excellence', 'Centre of Expertise','Hybrid Education'] 
   },
   { 
-    id: 'mechsetu', 
-    name: 'MechSetu', 
-    courses: ['Industrial 3D Printing', 'Multimaterial Printing', 'Micro-precision Printing','Rapid Prototyping',] 
-  },
-  { 
     id: 'nalaneel', 
-    name: 'Nalaneel', 
+    name: 'TechVruddhi', 
     courses: ['Custom Software Development', 'Web Development', 'Mobile App Development','Cloud Solutions',] 
   },
   { 
     id: 'bim-construct', 
     name: 'BIM Construct', 
     courses: ['Building Information Modeling', 'Construction Management', 'Architectural Design'] 
+  },
+  { 
+    id: 'mechsetu', 
+    name: 'MechSetu', 
+    courses: ['Industrial 3D Printing', 'Multimaterial Printing', 'Micro-precision Printing','Rapid Prototyping',] 
   }
 ];
 
