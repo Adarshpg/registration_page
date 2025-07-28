@@ -6,8 +6,8 @@ import './RegistrationForm.css';
 const SERVICES = [
   { 
     id: 'edutech', 
-    name: 'EduTech', 
-    courses: ['BIM Construction', 'BIM Architecture', 'BIM Infrastructure','AEC','Product Design and Manufacturing','IT'] 
+    name: ' Medini EduTech', 
+    courses: ['BIM for Construction', 'BIM for Architecture', 'BIM for Infrastructure','AEC','Product Design and Manufacturing','IT'] 
   },
   { 
     id: 'digidhvani', 
@@ -17,7 +17,7 @@ const SERVICES = [
   { 
     id: 'builddspace', 
     name: 'BuilddSpace', 
-    courses: ['Startup Incubation', 'Startup support'] 
+    courses: ['Startup Incubation', 'Startup Support'] 
   },
   { 
     id: 'eduphygital', 
