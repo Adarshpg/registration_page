@@ -22,7 +22,7 @@ const SERVICES = [
   { 
     id: 'eduphygital', 
     name: 'EduPhyGital', 
-    courses: ['centre of excellence', 'Hybrid Education', 'centre of expertise'] 
+    courses: ['Centre of Excellence', 'Centre of Expertise','Hybrid Education'] 
   },
   { 
     id: 'mechsetu', 
