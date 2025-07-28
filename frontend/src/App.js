@@ -156,7 +156,7 @@ function App() {
           </Routes>
         </main>
         <footer className="app-footer">
-          <p> {new Date().getFullYear()} Project Registration. All rights reserved.</p>
+          <p> {new Date().getFullYear()} Project Registration. All rights Under Medini.</p>
         </footer>
       </div>
     </AuthContext.Provider>
