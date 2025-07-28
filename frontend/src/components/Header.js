@@ -16,14 +16,18 @@ const Header = ({ isAuthenticated, onLogout }) => {
       <div className="container">
         <div className="header-content">
           <div className="logo-container">
-            <Link to="/" className="logo-link">
+            <div 
+              className="logo-link" 
+              onClick={() => window.location.href = 'https://medinitechnologies.in/'}
+              style={{ cursor: 'pointer' }}
+            >
               <img 
                 src="/images/123.png" 
                 alt="Logo" 
                 className="logo"
               />
               <span className="logo-text"></span>
-            </Link>
+            </div>
           </div>
           <nav className="nav">
             <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
