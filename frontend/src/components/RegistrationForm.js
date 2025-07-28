@@ -32,7 +32,7 @@ const SERVICES = [
   { 
     id: 'bim-construct', 
     name: 'BIM Construct', 
-    courses: ['Building Information Modeling', 'Construction Management', 'Architectural Design'] 
+    courses: ['Building Information Modeling', 'Construction Management', 'Architectural Design','Interior and Exterior Designing'] 
   },
   { 
     id: 'mechsetu', 
