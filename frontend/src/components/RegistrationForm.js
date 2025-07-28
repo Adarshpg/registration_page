@@ -7,7 +7,7 @@ const SERVICES = [
   { 
     id: 'edutech', 
     name: ' Medini EduTech', 
-    courses: ['BIM for Construction', 'BIM for Architecture', 'BIM for Infrastructure','AEC','Product Design and Manufacturing','IT'] 
+    courses: ['BIM for Construction', 'BIM for Architecture', 'BIM for Infrastructure','Autodesk','Bentley Systems','Others','Product Design and Manufacturing','IT'] 
   },
   { 
     id: 'digidhvani', 
